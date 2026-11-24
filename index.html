@@ -45,7 +45,7 @@
   .check { flex:none; width:28px; height:28px; border-radius:50%; border:2px solid var(--accent); background:none; margin-top:1px; }
   .num { color:var(--muted); font-size:13px; }
   .amt { font-weight:700; color:var(--accent); }
-  #timerbar { position:sticky; top:calc(env(safe-area-inset-top) + 28px); background:var(--bg); margin:0 -16px; padding-left:16px; padding-right:16px; padding-bottom:8px; z-index:5; display:flex; flex-direction:column; gap:6px; padding-top:8px; }
+  #timerbar { position:sticky; top:env(safe-area-inset-top); background:var(--bg); margin:0 -16px; padding:8px 16px; z-index:5; display:flex; flex-direction:column; gap:6px; }
   #timerbar:empty { display:none; }
   .tchip { text-align:left; background:var(--accent); color:#fff; border:none; border-radius:12px; padding:10px 14px; font-size:15px;
            white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-shadow:0 2px 8px rgba(0,0,0,.2); }
@@ -110,8 +110,14 @@ function startTimer(rec, i) {
 const mmss = ms => { const m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60; return `${m}:${String(s).padStart(2, "0")}`; };
 function drawTimers() {
   const bar = document.getElementById("timerbar"), now = Date.now();
-  bar.innerHTML = timers.filter(x => x.end > now).map(x =>
-    `<button class="tchip" data-rid="${x.rid}" data-i="${x.i}">⏱ <b>${mmss(x.end - now)}</b> ${x.label}</button>`).join("");
+  const live = timers.filter(x => x.end > now), mute = live.length > 0 && ctx?.state !== "running";
+  const sig = mute + live.map(x => x.rid + ":" + x.i).join();
+  if (bar.dataset.sig !== sig) {   // rebuild only when timers change, so taps aren't lost
+    bar.dataset.sig = sig;
+    bar.innerHTML = (mute ? `<div class="tlabel">🔇 Tap anywhere to turn on the alarm sound</div>` : "") + live.map(x =>
+      `<button class="tchip" data-rid="${x.rid}" data-i="${x.i}">⏱ <b></b> ${x.label}</button>`).join("");
+  }
+  bar.querySelectorAll(".tchip b").forEach((b, n) => b.textContent = mmss(live[n].end - now));
   document.querySelectorAll(".trun").forEach(el => {
     const x = R && timers.find(x => x.rid === R.id && x.i === +el.dataset.i);
     if (x) el.querySelector("b").textContent = x.end > now ? mmss(x.end - now) : "0:00";
@@ -123,8 +129,9 @@ function showAlarm(x) {
   const d = document.createElement("div"); d.id = "alarm";
   d.innerHTML = `<div class="abox"><div class="big">⏰</div><div class="atitle">Time's up!</div><div>${x.label}</div>
     <button id="stop">✓ Complete step</button><br><button id="more">+5 min</button></div>`;
+  const s = navigator.audioSession; if (s) s.type = "playback";   // ring even with the silent switch on
   document.body.appendChild(d); beep(); beepLoop = setInterval(beep, 1500);
-  const close = () => { clearInterval(beepLoop); d.remove(); };
+  const close = () => { clearInterval(beepLoop); d.remove(); if (s) s.type = "auto"; };
   d.querySelector("#stop").onclick = () => { close(); complete(x.rid, x.i); };
   d.querySelector("#more").onclick = () => { close(); x.end = Date.now() + 5 * 60000; saveTimers(); drawTimers(); };
 }
@@ -212,7 +219,7 @@ function restart() {
 }
 
 document.addEventListener("click", e => {
-  unlockAudio();
+  unlockAudio(); wake();
   const tc = e.target.closest(".tchip");
   if (tc) return goToStep(tc.dataset.rid, +tc.dataset.i);
   const tr = e.target.closest(".trun");
@@ -236,8 +243,9 @@ undoBtn.onclick = () => {
   render(); scrollTo({ top: 0, behavior: "smooth" });
 };
 
-const wake = () => navigator.wakeLock?.request("screen").catch(() => {});
-wake(); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { wake(); drawTimers(); } });
+let lock;   // keep the screen on so timers can ring
+const wake = () => { if (!lock || lock.released) navigator.wakeLock?.request("screen").then(l => lock = l, () => {}); };
+wake(); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { wake(); ctx?.resume(); drawTimers(); } });
 addEventListener("hashchange", route);
 // load recipe files fresh every time (no stale cache after updates), in order
 (async () => {
