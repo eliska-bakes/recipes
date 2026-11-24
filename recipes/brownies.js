@@ -1,0 +1,35 @@
+RECIPES.push({
+  id: "brownies",
+  emoji: "🍫",
+  title: "Brownies",
+  short: "Dark chocolate, with white & milk chunks",
+  restartLabel: "🍫 New batch",
+  finishText: "🍫 Brownies are ready!",
+  totalTime: "about 50 min + cooling",
+  finishWhenLeft: 2,
+
+  ingredients: [
+    { id: "butter", amount: 180, unit: "g", name: "butter" },
+    { id: "dark",   amount: 180, unit: "g", name: "dark chocolate", note: "(70 % or more)" },
+    { id: "eggs",   amount: 3,   unit: "",  name: "large eggs" },
+    { id: "sugar",  amount: 270, unit: "g", name: "caster sugar" },
+    { id: "flour",  amount: 80,  unit: "g", name: "flour" },
+    { id: "cocoa",  amount: 40,  unit: "g", name: "cocoa powder" },
+    { id: "white",  amount: 1,   unit: "bar", name: "white chocolate" },
+    { id: "milk",   amount: 1,   unit: "bar", name: "milk chocolate" },
+  ],
+
+  steps: [
+    { text: "🍫 Melt {butter} and {dark}." },
+    { text: "📄 Line a baking tray with baking paper." },
+    { text: "🌾 Mix the dry ingredients: sift {flour} and {cocoa} into a bowl." },
+    { text: "🔪 Chop {white} and {milk} into small pieces." },
+    { text: "🥣 Mix the wet ingredients: whisk {eggs} with {sugar} until pale, foamy and doubled in volume." },
+    { text: "🔥 Turn the oven on to 160 °C (fan)." },
+    { text: "🥄 Pour the melted chocolate and butter into the eggs and fold <u>gently</u> with a spatula until evenly brown. Don't knock the air out." },
+    { text: "🌾 Sift the dry mix over and fold in <u>gently</u>, just until it turns into a moist, sticky batter." },
+    { text: "🍫 Fold in the chopped chocolate." },
+    { text: "🔥 Pour into the tray, scrape the bowl clean and level the top. Bake 25 min, then give the tray a little shake. If the centre still wobbles, bake 5 min more. It's done when the top looks like shiny paper and the sides pull away from the tray.", timer: 25, label: "Brownies are baking" },
+    { text: "🧺 Let it cool." },
+  ],
+});
