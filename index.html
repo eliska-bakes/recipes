@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Recipes">
+<title>Recipes</title>
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="apple-touch-icon.png">
+<style>
+  :root { --bg:#f7efe2; --card:#fffaf2; --ink:#4a3424; --muted:#a08a72; --accent:#c0692b; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#1c1814; --card:#2a241e; --ink:#f1e7da; --muted:#9a8b78; } }
+  * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { margin:0; font:17px/1.4 -apple-system, system-ui, sans-serif; background:var(--bg); color:var(--ink);
+         padding:calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 90px); }
+  /* solid strip behind the status bar so content doesn't scroll under it */
+  body::before { content:""; position:fixed; top:0; left:0; right:0; height:env(safe-area-inset-top); background:var(--bg); z-index:20; }
+  h1 { font:600 32px/1.2 Georgia, "Iowan Old Style", serif; margin:14px 0 4px; }
+  a { color:var(--accent); }
+  .muted { color:var(--muted); font-size:15px; margin-bottom:12px; }
+  .card, .step, details { background:var(--card); border-radius:14px; box-shadow:0 1px 3px rgba(90,60,30,.12); }
+  /* home */
+  .card { display:flex; gap:14px; align-items:center; padding:14px 16px; margin-bottom:10px; text-decoration:none; color:var(--ink); }
+  .card .em { font-size:38px; }
+  .card b { font:600 19px/1.25 Georgia, serif; display:block; }
+  .card small { color:var(--muted); }
+  .badge { color:var(--accent); font-weight:600; }
+  /* recipe */
+  .top { display:flex; align-items:center; justify-content:center; position:relative; margin-top:10px; min-height:34px; }
+  .back { position:absolute; left:0; text-decoration:none; font-size:16px; }
+  #reset { background:var(--card); color:var(--accent); border:1.5px solid var(--accent); border-radius:16px; padding:6px 14px; font-size:15px; font-weight:600; }
+  details { padding:12px 16px; margin-bottom:12px; }
+  summary { font-weight:600; cursor:pointer; }
+  details ul { margin:8px 0 0; padding-left:20px; }
+  .total { color:var(--muted); font-size:15px; margin-top:8px; }
+  #flours { display:flex; flex-wrap:wrap; gap:6px; margin-top:10px; }
+  #flours:empty { display:none; }
+  .chip { border:1.5px solid var(--accent); background:none; color:var(--accent); border-radius:16px; padding:5px 12px; font-size:15px; }
+  .chip.on { background:var(--accent); color:#fff; }
+  .step { padding:14px 16px; margin-bottom:10px; display:flex; gap:14px; align-items:flex-start;
+          transition:opacity .35s, transform .35s, max-height .35s, margin .35s, padding .35s; max-height:400px; overflow:hidden; }
+  .step.done { opacity:0; transform:translateX(40px); max-height:0; margin:0; padding-top:0; padding-bottom:0; }
+  .step.current { box-shadow:0 0 0 2px var(--accent); }
+  .check { flex:none; width:28px; height:28px; border-radius:50%; border:2px solid var(--accent); background:none; margin-top:1px; }
+  .num { color:var(--muted); font-size:13px; }
+  .amt { font-weight:700; color:var(--accent); }
+  #timerbar { position:sticky; top:calc(env(safe-area-inset-top) + 28px); background:var(--bg); margin:0 -16px; padding-left:16px; padding-right:16px; padding-bottom:8px; z-index:5; display:flex; flex-direction:column; gap:6px; padding-top:8px; }
+  #timerbar:empty { display:none; }
+  .tchip { text-align:left; background:var(--accent); color:#fff; border:none; border-radius:12px; padding:10px 14px; font-size:15px;
+           white-space:nowrap; overflow:hidden; text-overflow:ellipsis; box-shadow:0 2px 8px rgba(0,0,0,.2); }
+  .tchip b { font-variant-numeric:tabular-nums; font-size:17px; margin-right:6px; }
+  .trun { display:block; width:fit-content; margin-top:10px; border:none; background:var(--accent); color:#fff; border-radius:10px; padding:7px 12px; font-size:15px; }
+  .trun b { font-variant-numeric:tabular-nums; font-size:17px; }
+  .step.running .check { background:repeating-conic-gradient(var(--accent) 0 25%, transparent 0 50%); opacity:.6; }
+  .step.flash { box-shadow:0 0 0 3px var(--accent), 0 0 18px var(--accent); }
+  #more { margin-top:10px; background:none; color:var(--accent); border:1.5px solid var(--accent); border-radius:14px; padding:10px 28px; font-size:17px; font-weight:600; }
+  .tlabel { margin-top:6px; color:var(--accent); font-size:14px; font-weight:600; }
+  #alarm { position:fixed; inset:0; z-index:10; background:rgba(40,25,15,.75); display:flex; align-items:center; justify-content:center; padding:24px; }
+  .abox { background:var(--card); border-radius:20px; padding:28px 24px; text-align:center; max-width:340px; width:100%; }
+  .abox .big { font-size:64px; animation:ring .5s infinite alternate; }
+  @keyframes ring { from { transform:rotate(-12deg); } to { transform:rotate(12deg); } }
+  .atitle { font:600 28px Georgia, serif; margin:6px 0 10px; }
+  #stop { margin-top:20px; background:var(--accent); color:#fff; border:none; border-radius:14px; padding:14px 40px; font-size:19px; font-weight:600; }
+  .finished { text-align:center; font-size:22px; padding:30px 0; }
+  #again { margin-top:20px; background:var(--accent); color:#fff; border:none; border-radius:14px; padding:16px 32px; font-size:19px; font-weight:600; }
+  #undo { position:fixed; left:50%; transform:translateX(-50%); bottom:calc(env(safe-area-inset-bottom) + 18px);
+          background:var(--ink); color:var(--bg); border:none; border-radius:24px; padding:12px 26px; font-size:17px; font-weight:600;
+          box-shadow:0 3px 10px rgba(0,0,0,.25); transition:opacity .2s; }
+  #undo[hidden] { display:block; opacity:0; pointer-events:none; }
+</style>
+</head>
+<body>
+<div id="timerbar"></div>
+<div id="app"></div>
+<button id="undo" hidden>↩︎ Back</button>
+
+<script>const RECIPES = [];</script>
+<!-- ===== Recipe files: add one name per new recipe ===== -->
+<script>const RECIPE_FILES = ["recipes/bread.js", "recipes/oat-cookies.js", "recipes/brownies.js"];</script>
+
+<script>
+const app = document.getElementById("app"), undoBtn = document.getElementById("undo");
+let R = null, done = [], ing = {}, flourIx = 0;
+const key = (r, k = "") => "recipe:" + r.id + k;
+const getDone = r => JSON.parse(localStorage.getItem(key(r)) || "[]");
+const save = () => localStorage.setItem(key(R), JSON.stringify(done));
+const fmt = i => i.amount == null ? "" : `<span class="amt">${i.amount}${i.unit ? " " + i.unit : ""}</span> `;
+const fill = t => t.replace(/\{(\w+)\}/g, (m, id) => ing[id] ? fmt(ing[id]) + ing[id].name : m);
+const plain = t => fill(t).replace(/<[^>]+>/g, "").replace(/^\W+/u, "").slice(0, 60);
+
+// ---------- timers (saved with end time, so they survive reloads and screen lock) ----------
+let timers = JSON.parse(localStorage.getItem("timers") || "[]");   // [{rid, i, end, label}]
+const saveTimers = () => localStorage.setItem("timers", JSON.stringify(timers));
+let ctx, beepLoop = null;
+function unlockAudio() { try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); ctx.resume(); } catch (e) {} }
+function beep() {
+  if (!ctx) return;
+  [0, 0.25, 0.5].forEach(d => { const o = ctx.createOscillator(), g = ctx.createGain();
+    o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime + d); g.gain.exponentialRampToValueAtTime(0.5, ctx.currentTime + d + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + d + 0.2); o.start(ctx.currentTime + d); o.stop(ctx.currentTime + d + 0.22); });
+}
+function startTimer(rec, i) {
+  const s = rec.steps[i];
+  timers = timers.filter(x => !(x.rid === rec.id && x.i === i));
+  timers.push({ rid: rec.id, i, end: Date.now() + s.timer * 60000, label: `${rec.emoji} ${s.label || plain(s.text)}` });
+  saveTimers(); drawTimers();
+}
+const mmss = ms => { const m = Math.floor(ms / 60000), s = Math.floor(ms / 1000) % 60; return `${m}:${String(s).padStart(2, "0")}`; };
+function drawTimers() {
+  const bar = document.getElementById("timerbar"), now = Date.now();
+  bar.innerHTML = timers.filter(x => x.end > now).map(x =>
+    `<button class="tchip" data-rid="${x.rid}" data-i="${x.i}">⏱ <b>${mmss(x.end - now)}</b> ${x.label}</button>`).join("");
+  document.querySelectorAll(".trun").forEach(el => {
+    const x = R && timers.find(x => x.rid === R.id && x.i === +el.dataset.i);
+    if (x) el.querySelector("b").textContent = x.end > now ? mmss(x.end - now) : "0:00";
+  });
+  const due = timers.find(x => x.end <= now);
+  if (due && !document.getElementById("alarm")) showAlarm(due);
+}
+function showAlarm(x) {
+  const d = document.createElement("div"); d.id = "alarm";
+  d.innerHTML = `<div class="abox"><div class="big">⏰</div><div class="atitle">Time's up!</div><div>${x.label}</div>
+    <button id="stop">✓ Complete step</button><br><button id="more">+5 min</button></div>`;
+  document.body.appendChild(d); beep(); beepLoop = setInterval(beep, 1500);
+  const close = () => { clearInterval(beepLoop); d.remove(); };
+  d.querySelector("#stop").onclick = () => { close(); complete(x.rid, x.i); };
+  d.querySelector("#more").onclick = () => { close(); x.end = Date.now() + 5 * 60000; saveTimers(); drawTimers(); };
+}
+function complete(rid, i) {
+  timers = timers.filter(x => !(x.rid === rid && x.i === i)); saveTimers();
+  if (R && R.id === rid) {
+    if (!done.includes(i)) done.push(i); save();
+    const el = document.getElementById("s" + i); if (el) el.classList.add("done");
+    setTimeout(render, 350);
+  } else {
+    const r = RECIPES.find(r => r.id === rid), d = r ? getDone(r) : [];
+    if (r && !d.includes(i)) { d.push(i); localStorage.setItem(key(r), JSON.stringify(d)); }
+  }
+  drawTimers();
+}
+function goToStep(rid, i) {
+  const show = () => { const el = document.getElementById("s" + i); if (!el) return;
+    el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("flash"); setTimeout(() => el.classList.remove("flash"), 1200); };
+  if (R && R.id === rid) show(); else { location.hash = "#" + rid; setTimeout(show, 300); }
+}
+setInterval(drawTimers, 1000);
+
+// ---------- screens ----------
+function route() {
+  R = RECIPES.find(r => "#" + r.id === location.hash) || null;
+  R ? openRecipe() : home();
+  scrollTo(0, 0); drawTimers();
+}
+
+function home() {
+  undoBtn.hidden = true;
+  document.title = "Recipes";
+  app.innerHTML = `<h1>Recipes 🧺</h1><div class="muted">Happy baking!</div>` + RECIPES.map(r => {
+    const d = getDone(r).length;
+    const badge = d ? `<br><span class="badge">In progress: ${d} of ${r.steps.length}</span>` : "";
+    return `<a class="card" href="#${r.id}"><span class="em">${r.emoji}</span><span><b>${r.title}</b><small>${r.short || ""}</small>${badge}</span></a>`;
+  }).join("");
+}
+
+function openRecipe() {
+  done = getDone(R);
+  flourIx = +(localStorage.getItem(key(R, ":flour")) || 0);
+  document.title = R.title;
+  app.innerHTML = `
+    <div class="top"><a class="back" href="#">‹ Recipes</a><button id="reset">${R.restartLabel || "🔁 Start again"}</button></div>
+    <h1>${R.title} ${R.emoji}</h1>
+    <div class="muted" id="progress"></div>
+    <details id="ing"><summary>Ingredients</summary>${R.totalTime ? `<div class="total">⏱ Total time: ${R.totalTime}</div>` : ""}<div id="flours"></div><ul id="ingList"></ul></details>
+    ${R.tips ? `<details><summary>Tips</summary><ul>${R.tips.map(t => `<li>${t}</li>`).join("")}</ul></details>` : ""}
+    <div id="steps"></div>`;
+  renderIng(); render();
+}
+
+function renderIng() {
+  ing = Object.fromEntries(R.ingredients.map(i => [i.id, { ...i }]));
+  const f = (R.flours || [])[flourIx];
+  if (f) for (const id in f.set) Object.assign(ing[id], f.set[id]);
+  document.getElementById("flours").innerHTML = (R.flours || []).map((f, i) =>
+    `<button class="chip${i === flourIx ? " on" : ""}" data-f="${i}">${f.label}</button>`).join("");
+  document.getElementById("ingList").innerHTML = Object.values(ing).map(i => `<li>${fmt(i)}${i.name}${i.note ? " " + i.note : ""}</li>`).join("");
+}
+
+function render() {
+  const left = R.steps.map((s, i) => i).filter(i => !done.includes(i));
+  document.getElementById("progress").textContent = done.length
+    ? `${done.length} of ${R.steps.length} steps done 🌾` : `${R.steps.length} steps ahead 🌾`;
+  document.getElementById("ing").open = done.length === 0;
+  undoBtn.hidden = done.length === 0;
+  const finish = `<div class="finished">${R.finishText || "🎉 Done!"}<br><button id="again">${R.restartLabel || "🔁 Start again"}</button></div>`;
+  document.getElementById("steps").innerHTML = left.map((i, n) => {
+    const s = R.steps[i];
+    const run = s.timer && timers.find(x => x.rid === R.id && x.i === i);
+    const t = !s.timer ? "" : run
+      ? `<button class="trun" data-i="${i}">⏱ <b>${mmss(Math.max(0, run.end - Date.now()))}</b> left · tap to delete</button>`
+      : `<div class="tlabel">⏱ ${s.timer} min · starts when you tick</div>`;
+    return `<div class="step${n === 0 ? " current" : ""}${run ? " running" : ""}" id="s${i}">
+      <button class="check" data-i="${i}" aria-label="Done"></button>
+      <div><div class="num">Step ${i + 1}</div>${fill(s.text)}${t}</div></div>`;
+  }).join("") + (left.length <= (R.finishWhenLeft ?? 0) ? finish : "");
+}
+
+function restart() {
+  if (done.length && !confirm("Start again from scratch?")) return;
+  done = []; timers = timers.filter(x => x.rid !== R.id); saveTimers(); drawTimers(); save(); render(); scrollTo(0, 0);
+}
+
+document.addEventListener("click", e => {
+  unlockAudio();
+  const tc = e.target.closest(".tchip");
+  if (tc) return goToStep(tc.dataset.rid, +tc.dataset.i);
+  const tr = e.target.closest(".trun");
+  if (tr) { if (confirm("Delete this timer?")) { timers = timers.filter(x => !(x.rid === R.id && x.i === +tr.dataset.i)); saveTimers(); drawTimers(); render(); } return; }
+  if (!R) return;
+  if (e.target.id === "reset" || e.target.id === "again") return restart();
+  const c = e.target.closest(".check");
+  if (c) { const i = +c.dataset.i;
+           if (R.steps[i].timer) {
+             if (timers.some(x => x.rid === R.id && x.i === i)) { if (confirm("Timer is still running. Complete this step now?")) complete(R.id, i); }
+             else { startTimer(R, i); render(); }
+             return; }
+           if (done.includes(i)) return;
+           document.getElementById("s" + i).classList.add("done"); done.push(i); save(); setTimeout(render, 350); return; }
+  const f = e.target.closest(".chip");
+  if (f) { flourIx = +f.dataset.f; localStorage.setItem(key(R, ":flour"), flourIx); renderIng(); render(); return; }
+});
+undoBtn.onclick = () => {
+  const i = done.pop(); save();
+  timers = timers.filter(x => !(x.rid === R.id && x.i === i)); saveTimers(); drawTimers();
+  render(); scrollTo({ top: 0, behavior: "smooth" });
+};
+
+const wake = () => navigator.wakeLock?.request("screen").catch(() => {});
+wake(); document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible") { wake(); drawTimers(); } });
+addEventListener("hashchange", route);
+// load recipe files fresh every time (no stale cache after updates), in order
+(async () => {
+  for (const f of RECIPE_FILES) await new Promise(res => {
+    const s = document.createElement("script"); s.src = f + "?v=" + Date.now(); s.onload = s.onerror = res; document.head.appendChild(s);
+  });
+  timers = timers.filter(x => RECIPES.some(r => r.id === x.rid)); saveTimers();
+  route();
+})();
+</script>
+</body>
+</html>
